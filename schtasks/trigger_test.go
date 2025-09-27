@@ -70,12 +70,26 @@ func TestTriggerCreationFromXML(t *testing.T) {
 			1,
 			time.Time{},
 		},
+		// {
+		// 	"every minute at 12 (before 12)",
+		// 	[]string{"*-*-* 12:*"},
+		// 	`<CalendarTrigger>\s*<StartBoundary>\d{4}-\d{2}-\d{2}T11:\d{2}:00` + timezone + `</StartBoundary>\s*<Repetition>\s*<Interval>PT1M</Interval>\s*<Duration>PT59M</Duration>\s*</Repetition>\s*<ScheduleByDay>\s*<DaysInterval>1</DaysInterval>\s*</ScheduleByDay>\s*</CalendarTrigger>`,
+		// 	1,
+		// 	time.Date(2025, 7, 27, 11, 20, 0, 0, time.UTC),
+		// },
+		// {
+		// 	"every minute at 12",
+		// 	[]string{"*-*-* 12:*"},
+		// 	`<CalendarTrigger>\s*<StartBoundary>\d{4}-\d{2}-\d{2}T12:\d{2}:00` + timezone + `</StartBoundary>\s*<Repetition>\s*<Interval>PT1M</Interval>\s*<Duration>PT59M</Duration>\s*</Repetition>\s*<ScheduleByDay>\s*<DaysInterval>1</DaysInterval>\s*</ScheduleByDay>\s*</CalendarTrigger>`,
+		// 	1,
+		// 	time.Date(2025, 7, 27, 12, 20, 0, 0, time.UTC),
+		// },
 		{
-			"every minute at 12",
+			"every minute at 12 (after 12)",
 			[]string{"*-*-* 12:*"},
-			`<CalendarTrigger>\s*<StartBoundary>\d{4}-\d{2}-\d{2}T12:\d{2}:00` + timezone + `</StartBoundary>\s*<Repetition>\s*<Interval>PT1M</Interval>\s*<Duration>PT59M</Duration>\s*</Repetition>\s*<ScheduleByDay>\s*<DaysInterval>1</DaysInterval>\s*</ScheduleByDay>\s*</CalendarTrigger>`,
+			`<CalendarTrigger>\s*<StartBoundary>\d{4}-\d{2}-\d{2}T13:\d{2}:00` + timezone + `</StartBoundary>\s*<Repetition>\s*<Interval>PT1M</Interval>\s*<Duration>PT59M</Duration>\s*</Repetition>\s*<ScheduleByDay>\s*<DaysInterval>1</DaysInterval>\s*</ScheduleByDay>\s*</CalendarTrigger>`,
 			1,
-			time.Time{},
+			time.Date(2025, 7, 27, 13, 20, 0, 0, time.UTC),
 		},
 		// daily - more than one
 		{

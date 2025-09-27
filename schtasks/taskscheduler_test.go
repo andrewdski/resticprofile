@@ -149,7 +149,7 @@ func TestTaskSchedulerIntegration(t *testing.T) {
 			time.Time{},
 		},
 		{
-			"every minute at 12 before 12",
+			"every minute at 12 (before 12)",
 			[]string{"*-*-* 12:*"},
 			time.Date(2025, 7, 27, 11, 20, 0, 0, time.UTC),
 		},
@@ -160,7 +160,7 @@ func TestTaskSchedulerIntegration(t *testing.T) {
 		// 	time.Date(2025, 7, 27, 12, 20, 0, 0, time.UTC),
 		// },
 		{
-			"every minute at 12 after 12",
+			"every minute at 12 (after 12)",
 			[]string{"*-*-* 12:*"},
 			time.Date(2025, 7, 27, 13, 20, 0, 0, time.UTC),
 		},
