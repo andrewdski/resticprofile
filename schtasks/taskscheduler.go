@@ -121,7 +121,7 @@ func Status(title, subtitle string) error {
 	if err != nil {
 		return err
 	}
-	if len(info) < 2 {
+	if len(info) < 1 {
 		return ErrNotRegistered
 	}
 	writer := tabwriter.NewWriter(term.GetOutput(), 2, 2, 2, ' ', tabwriter.AlignRight)
