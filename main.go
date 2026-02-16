@@ -26,7 +26,7 @@ import (
 
 // These fields are populated by the goreleaser build
 var (
-	version = "0.32.0-dev"
+	version = "0.33.0-dev"
 	commit  = ""
 	date    = ""
 	builtBy = ""
@@ -305,7 +305,7 @@ func setPriority(nice int, class string) error {
 	var err error
 
 	if class != "" {
-		if classID, ok := constants.PriorityValues[strings.ToLower(class)]; ok {
+		if classID, ok := priority.Values[strings.ToLower(class)]; ok {
 			err = priority.SetClass(classID)
 			if err != nil {
 				return err
