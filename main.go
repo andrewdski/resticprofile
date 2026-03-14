@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"text/tabwriter"
@@ -179,6 +180,14 @@ func main() {
 		return
 	}
 
+	// Ensure the resolved config file path is present as an explicit --config flag
+	// in os.Args. This matters when resticprofile re-launches itself elevated via
+	// ShellExecute (runas), which does not inherit the parent's environment
+	// variables, so RESTICPROFILE_CONFIG won't be visible to the child.
+	if ctx != nil && ctx.config != nil {
+		ensureConfigFlagInArgs(ctx.config.GetConfigFile())
+	}
+
 	// check if we're running on battery
 	if shouldStopOnBattery(ctx.stopOnBattery) {
 		exitCode = 3
@@ -276,6 +285,12 @@ func banner() {
 func loadConfig(flags commandLineFlags, silent bool) (cfg *config.Config, global *config.Global, err error) {
 	var configFile string
 	if configFile, err = filesearch.NewFinder().FindConfigurationFile(flags.config); err == nil {
+		// Resolve to an absolute path so that if resticprofile re-launches itself
+		// elevated via ShellExecute (which does not reliably inherit the working
+		// directory), the config path in os.Args is still valid.
+		if abs, absErr := filepath.Abs(configFile); absErr == nil {
+			configFile = abs
+		}
 		if configFile != flags.config && !silent {
 			clog.Infof("using configuration file: %s", configFile)
 		}
@@ -299,6 +314,26 @@ func loadContext(flags commandLineFlags) (*Context, error) {
 		return nil, err
 	}
 	return CreateContext(flags, global, cfg, ownCommands)
+}
+
+// ensureConfigFlagInArgs injects "--config <configFile>" at the start of os.Args
+// (after the program name) if neither --config nor -c is already present.
+// This ensures the elevated child process (launched via ShellExecute/runas, which
+// does not inherit the parent's environment) can find the configuration file.
+func ensureConfigFlagInArgs(configFile string) {
+	if configFile == "" {
+		return
+	}
+	for _, arg := range os.Args[1:] {
+		if arg == "--config" || arg == "-c" {
+			return // already explicit
+		}
+	}
+	// Prepend --config <configFile> after the program name
+	newArgs := make([]string, 0, len(os.Args)+2)
+	newArgs = append(newArgs, os.Args[0], "--config", configFile)
+	newArgs = append(newArgs, os.Args[1:]...)
+	os.Args = newArgs
 }
 
 func setPriority(nice int, class string) error {
