@@ -93,6 +93,7 @@ func (h *HandlerSystemd) DisplaySchedules(profile, command string, schedules []s
 	return displaySystemdSchedules(profile, command, schedules)
 }
 
+// DisplayStatus displays the status of all the timers installed on that profile. Example:
 // Timers summary
 // ===============
 // NEXT                        LEFT       LAST                        PASSED  UNIT                                  ACTIVATES
@@ -113,7 +114,7 @@ func (h *HandlerSystemd) DisplayStatus(profileName string) error {
 	}
 	if err != nil || status == "" || strings.Contains(status, "0 timers") {
 		// fail silently
-		return nil
+		return nil //nolint:nilerr
 	}
 	fmt.Fprintf(term.GetOutput(), "\nTimers summary\n===============\n%s\n", status)
 	return nil
@@ -142,11 +143,11 @@ func (h *HandlerSystemd) CreateJob(job *Config, schedules []*calendar.Event, per
 				clog.Infof("removing existing unit with different permission")
 				err := h.disableJob(job, otherUnitType, timerFile)
 				if err != nil {
-					return fmt.Errorf("cannot stop or disable existing unit before scheduling with different permission. You might want to retry using sudo.")
+					return fmt.Errorf("cannot stop or disable existing unit before scheduling with different permission, you might want to retry using sudo")
 				}
 				err = h.removeJobFiles(job, otherUnitType, timerFile, systemd.GetServiceFile(job.ProfileName, job.CommandName))
 				if err != nil {
-					return fmt.Errorf("cannot remove existing unit before scheduling with different permission. You might want to retry using sudo.")
+					return fmt.Errorf("cannot remove existing unit before scheduling with different permission, you might want to retry using sudo")
 				}
 			}
 		}
@@ -250,7 +251,7 @@ func (h *HandlerSystemd) removeJobFiles(job *Config, unitType systemd.UnitType, 
 	if unitType == systemd.UserUnit {
 		systemdPath, err = unit.GetUserDir()
 		if err != nil {
-			return nil
+			return nil //nolint:nilerr
 		}
 	}
 
@@ -318,7 +319,7 @@ func (h *HandlerSystemd) Scheduled(profileName string) ([]Config, error) {
 	return configs, nil
 }
 
-// detectSchedulePermission returns the permission defined from the configuration,
+// DetectSchedulePermission returns the permission defined from the configuration,
 // or the best guess considering the current user permission.
 // safe specifies whether a guess may lead to a too broad or too narrow file access permission.
 func (h *HandlerSystemd) DetectSchedulePermission(p Permission) (Permission, bool) {

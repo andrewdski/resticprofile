@@ -2,6 +2,7 @@ package lock
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/creativeprojects/resticprofile/constants"
 	"github.com/creativeprojects/resticprofile/platform"
 	"github.com/creativeprojects/resticprofile/shell"
 	"github.com/shirou/gopsutil/v3/process"
@@ -26,6 +28,9 @@ var (
 func TestMain(m *testing.M) {
 	// using an anonymous function to handle defer statements before os.Exit()
 	exitCode := func() int {
+		ctx, cancel := context.WithTimeout(context.Background(), constants.DefaultTestTimeout)
+		defer cancel()
+
 		tempDir, err := os.MkdirTemp("", "resticprofile-lock")
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "cannot create temp dir: %v\n", err)
@@ -36,7 +41,7 @@ func TestMain(m *testing.M) {
 
 		helperBinary = filepath.Join(tempDir, platform.Executable("locktest"))
 
-		cmd := exec.Command("go", "build", "-buildvcs=false", "-o", helperBinary, "./test")
+		cmd := exec.CommandContext(ctx, "go", "build", "-buildvcs=false", "-o", helperBinary, "./test")
 		if err := cmd.Run(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error building helper binary: %s\n", err)
 			return 1
@@ -263,53 +268,57 @@ func TestLockWithNoInterruption(t *testing.T) {
 }
 
 func TestLockIsRemovedAfterInterruptSignal(t *testing.T) {
-	t.Parallel()
-
 	if platform.IsWindows() {
 		t.Skip("cannot send a signal to a child process in Windows")
 	}
+	t.Parallel()
 	lockfile := getTempfile(t)
 
 	var err error
 	buffer := &bytes.Buffer{}
-	cmd := exec.Command(helperBinary, "-wait", "2000", "-lock", lockfile)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, helperBinary, "-wait", "2000", "-lock", lockfile)
 	cmd.Stdout = buffer
 	cmd.Stderr = buffer
 
 	err = cmd.Start()
-	require.NoError(t, err)
+	require.NoError(t, err, "starting child process")
 
 	time.Sleep(300 * time.Millisecond)
 	err = cmd.Process.Signal(syscall.SIGINT)
-	require.NoError(t, err)
+	require.NoError(t, err, "sending interrupt signal to child process")
 
 	err = cmd.Wait()
-	assert.NoError(t, err)
+	assert.NoError(t, err, "waiting for child process to finish")
 	assert.Equal(t, "lock acquired\ntask interrupted\nlock released\n", buffer.String())
 }
 
 func TestLockIsRemovedAfterInterruptSignalInsideShell(t *testing.T) {
-	t.Parallel()
-
 	if platform.IsWindows() {
 		t.Skip("cannot send a signal to a child process in Windows")
 	}
+	t.Parallel()
 	lockfile := getTempfile(t)
 
 	var err error
 	buffer := &bytes.Buffer{}
-	cmd := exec.Command("sh", "-c", "exec "+helperBinary+" -wait 2000 -lock "+lockfile)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "sh", "-c", "exec "+helperBinary+" -wait 2000 -lock "+lockfile)
 	cmd.Stdout = buffer
 	cmd.Stderr = buffer
 
 	err = cmd.Start()
-	require.NoError(t, err)
+	require.NoError(t, err, "starting child process inside a shell")
 
 	time.Sleep(300 * time.Millisecond)
 	err = cmd.Process.Signal(syscall.SIGINT)
-	require.NoError(t, err)
+	require.NoError(t, err, "sending interrupt signal to child process")
 
 	err = cmd.Wait()
-	assert.NoError(t, err)
+	assert.NoError(t, err, "waiting for child process to finish")
 	assert.Equal(t, "lock acquired\ntask interrupted\nlock released\n", buffer.String())
 }
